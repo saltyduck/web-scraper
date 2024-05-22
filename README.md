@@ -82,6 +82,17 @@ a string instead of URI or HTTP::Response.
 
 This way Web::Scraper can resolve the relative links found in the document.
 
+Also you can optionally pass HTML::TreeBuilder::XPath attributes (See: [HTML::TreeBuilder](https://metacpan.org/pod/HTML%3A%3ATreeBuilder)) as a hash reference.
+
+    $res = $scraper->scrape($html_content, { ignore_unknown => 1 });
+
+And you can also pass both the base URL and attributes.
+
+    $res = $scraper->scrape($html_content, {
+                                  base_url => "http://example.com/foo"
+                                  ignore_unknown => 1
+                           });
+
 ## process
 
     scraper {

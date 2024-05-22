@@ -54,7 +54,19 @@ sub _build_scraper {
 
 sub scrape {
     my $self  = shift;
-    my($stuff, $current) = @_;
+    my($stuff, $current_or_tree_attrs) = @_;
+
+    my $current;
+    my $treebuilder_attrs = {};
+    if (ref $current_or_tree_attrs eq 'HASH') {
+        $current = $current_or_tree_attrs->{base_url};
+        my %opt = %$current_or_tree_attrs;
+        undef $opt{base_url};
+        $treebuilder_attrs = { ignore_unknown=>0, %opt };
+    } else {
+        # is a string;
+        $current = $current_or_tree_attrs;
+    }
 
     my($html, $tree);
 
@@ -77,7 +89,7 @@ sub scrape {
         $html = $stuff;
     }
 
-    $tree ||= $self->build_tree($html);
+    $tree ||= $self->build_tree($html, $treebuilder_attrs);
 
     my $stash = {};
     no warnings 'redefine';
@@ -109,12 +121,22 @@ sub scrape {
     return $stash;
 }
 
+sub _set_attributes {
+    my ($t, $attrs) = @_;
+    while (my($name, $val) = each %$attrs) {
+        next unless $t->can($name);
+        no strict 'refs';
+        $t->$name($val);
+    }
+}
+
 sub build_tree {
-    my($self, $html) = @_;
+    my($self, $html, $tree_attrs) = @_;
 
     my $t = HTML::TreeBuilder::XPath->new;
     $t->store_comments(1) if ($t->can('store_comments'));
     $t->ignore_unknown(0);
+    _set_attributes($t, $tree_attrs);
     $t->parse($html);
     $t->eof;
     $t;
@@ -378,6 +400,17 @@ a string instead of URI or HTTP::Response.
   $res = $scraper->scrape($html_content, "http://example.com/foo");
 
 This way Web::Scraper can resolve the relative links found in the document.
+
+Also you can optionally pass HTML::TreeBuilder::XPath attributes (See: L<HTML::TreeBuilder>) as a hash reference.
+
+  $res = $scraper->scrape($html_content, { ignore_unknown => 1 });
+
+And you can also pass both the base URL and attributes.
+
+  $res = $scraper->scrape($html_content, {
+                                base_url => "http://example.com/foo"
+                                ignore_unknown => 1
+                         });
 
 =head2 process
 
